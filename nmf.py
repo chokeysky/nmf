@@ -10,6 +10,13 @@ import sys
 TERMS="bbcnews.terms"
 TDMATRIX="bbcnews.mtx"
 
+def malformed(msg):
+	'''prints message & exits in the case of a malformed
+	term-document matrix'''
+
+	print("Malformed term-document matrix in file '" + TDMATRIX + "' :\n"
+		+ msg)
+	sys.exit(-1)
 
 def populate_matrix():
 	'''reads in a list of terms & a term-document matrix
@@ -18,34 +25,47 @@ def populate_matrix():
 	A = term-document matrix in the form of 2D array of floats.
 	terms = the terms as a 1D array of strings.'''
 
-	with open(TDMATRIX, "r") as mfh:
-		header = mfh.readline() #skip header
+	with open(TERMS, "r") as tfh:
+		terms =	tfh.readlines()
 
-		#read matrix dimensions
+	with open(TDMATRIX, "r") as mfh:
+		header = mfh.readline() # skip header
+
+		# read matrix dimensions
 		rows, columns, numvalues = mfh.readline().split()
 
-		#initialise matrix A with above dimensions to all zeros
-		A = [[0 for i in range(int(rows))] for j in range(int(columns))]
+		# initialise matrix A with above dimensions to all zeros
+		A = [[0.0 for i in range(int(rows))] for j in range(int(columns))]
 
-		#populate matrix A
+		# populate matrix A
 		count = 0
 		for line in mfh:
 			term, doc, freq = line.split()
-			A[int(doc) - 1][int(term) - 1] = float(freq)
-			count += 1
+			term = int(term)
+			doc = int(doc)
+			freq = float(freq)
 
-		#make sure our entry count matches the number of non-zero
-		#values given on the 2nd line
+			# sanity check:
+			# double entry means I did something wrong,
+			# or matrix was generated incorrectly
+			if A[doc -1][term - 1] == 0:
+				A[doc - 1][term - 1] = freq
+				count += 1
+			else:
+				malformed("Entry #" + str(count + 1) + ", for term '" +
+					terms[term - 1].strip() + "' in document #" + str(doc) +
+					"\nalready has a value of " + A[doc -1][term -1] +
+					".\nEntries cannot be assigned twice.")
+
+		# final sanity check
 		if int(numvalues) != count:
-			print("Malformed term-document matrix in file '" + TDMATRIX + "'\n"
-				"Expecting " + numvalues + " entries but found " + str(count))
-			sys.exit(-1)
-	with open(TERMS, "r") as tfh:
-		terms =	tfh.readlines()
+				malformed("Expecting " + numvalues +
+					" entries but found " + str(count))
 
 	return A, terms	
 
 def main():
 	A, terms = populate_matrix()
+	A = numpy.array(A)
 
 main()
