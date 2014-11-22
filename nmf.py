@@ -48,7 +48,7 @@ def populate_matrix():
 		# read matrix dimensions
 		rows, columns, numvalues = mfh.readline().split()
 
-		# initialise matrix A with above dimensions to all zeros
+		# initialise term frequency (TF) matrix A with above dimensions
 		V = [[0.0 for i in range(int(rows))] for j in range(int(columns))]
 
 		# initialise array to store document frequency (DF) of terms
@@ -84,16 +84,28 @@ def populate_matrix():
 		if int(numvalues) != count:
 				malformed("Expecting " + numvalues +
 					" entries but found " + str(count))
-	print("Done.")
 	return V, DF, terms	
 
 
 def main():
 	V, DF, terms = populate_matrix()
 	V = numpy.array(V)
+
+	# normalise V using TF-IDF
+	print("Normalising...")
+	n = len(V)
+	for x in range(len(V)):
+		for y in range(len(V[x])):
+			V[x][y] *= numpy.log10(n / DF[y])
+		# takes some time, so print a percentage..
+		pc = ((float(x) + 1) / n) * 100
+		sys.stdout.write("\b\b\b\b%03d%%" % (pc))
+		sys.stdout.flush()
+
+	sys.stdout.write("\n")
+
 	M = len(V)
 	N = len(V[0])
 	K = 5
-	print(numpy.log10(2.0/1.0))
 
 main()
