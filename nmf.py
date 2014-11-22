@@ -6,6 +6,7 @@
 
 import numpy
 import sys
+import os
 
 TERMS="bbcnews.terms"
 TDMATRIX="bbcnews.mtx"
@@ -25,8 +26,18 @@ def populate_matrix():
 	A = term-document matrix in the form of 2D array of floats.
 	terms = the terms as a 1D array of strings.'''
 
+	files = ""
+	if not os.path.exists(TERMS):
+		files += (TERMS + "\n")
+	if not os.path.exists(TDMATRIX):
+		files += (TDMATRIX + "\n")
+
+	if files != "":
+		print("\nno such file(s) :\n" + files)
+		sys.exit(-1)
+	
 	with open(TERMS, "r") as tfh:
-		print("Reading file '" + TERMS + "'...")
+		print("\nReading file '" + TERMS + "'...")
 		terms =	tfh.readlines()
 
 	with open(TDMATRIX, "r") as mfh:
