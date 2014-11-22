@@ -26,9 +26,11 @@ def populate_matrix():
 	terms = the terms as a 1D array of strings.'''
 
 	with open(TERMS, "r") as tfh:
+		print("Reading file '" + TERMS + "'...")
 		terms =	tfh.readlines()
 
 	with open(TDMATRIX, "r") as mfh:
+		print("Reading file '" + TDMATRIX + "'...")
 		header = mfh.readline() # skip header
 
 		# read matrix dimensions
@@ -40,6 +42,10 @@ def populate_matrix():
 		# populate matrix A
 		count = 0
 		for line in mfh:
+			# skip empty lines- just in case!
+			if (line.strip() == ''): 
+				continue
+
 			term, doc, freq = line.split()
 			term = int(term)
 			doc = int(doc)
@@ -61,7 +67,7 @@ def populate_matrix():
 		if int(numvalues) != count:
 				malformed("Expecting " + numvalues +
 					" entries but found " + str(count))
-
+	print("Done.")
 	return A, terms	
 
 def main():
