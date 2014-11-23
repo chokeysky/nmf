@@ -86,23 +86,27 @@ def populate_matrix():
 					" entries but found " + str(count))
 	return V, DF, terms	
 
+def tf_idf(V, DF):
+	'''takes matrix V and performs TF-IDF normalisation'''
+	print("Normalising...")
+	n = len(V)
+	for x in range(len(V)):
+		for y in range(len(V[x])):
+			if (V[x][y] != 0):
+				V[x][y] *= numpy.log10(n / DF[y])
+
+		# takes some time, so print a percentage..
+		pc = ((float(x) + 1) / n) * 100
+		sys.stdout.write("\b\b\b\b%03d%%" % (pc))
+		sys.stdout.flush()
+	sys.stdout.write("\n")
 
 def main():
 	V, DF, terms = populate_matrix()
 	V = numpy.array(V)
 
 	# normalise V using TF-IDF
-	print("Normalising...")
-	n = len(V)
-	for x in range(len(V)):
-		for y in range(len(V[x])):
-			V[x][y] *= numpy.log10(n / DF[y])
-		# takes some time, so print a percentage..
-		pc = ((float(x) + 1) / n) * 100
-		sys.stdout.write("\b\b\b\b%03d%%" % (pc))
-		sys.stdout.flush()
-
-	sys.stdout.write("\n")
+	tf_idf(V, DF)
 
 	M = len(V)
 	N = len(V[0])
