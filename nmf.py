@@ -42,7 +42,7 @@ def populate_matrix():
 		terms =	tfh.readlines()
 
 	with open(TDMATRIX, "r") as mfh:
-		print("Reading file '" + TDMATRIX + "'...")
+		print("Reading file '" + TDMATRIX + "' ...")
 		header = mfh.readline() # skip header
 
 		# read matrix dimensions
@@ -95,19 +95,11 @@ def tf_idf(V, DF):
 			if (V[x][y] != 0):
 				V[x][y] *= numpy.log10(n / DF[y])
 
-		# takes some time, so print a percentage..
-		pc = ((float(x) + 1) / n) * 100
-		sys.stdout.write("\b\b\b\b%03d%%" % (pc))
-		sys.stdout.flush()
-	sys.stdout.write("\n")
-
 def main():
 	V, DF, terms = populate_matrix()
-	V = numpy.array(V)
-
-	# normalise V using TF-IDF
 	tf_idf(V, DF)
 
+	V = numpy.array(V)
 	M = len(V)
 	N = len(V[0])
 	K = 5
