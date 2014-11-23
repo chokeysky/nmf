@@ -97,11 +97,21 @@ def tf_idf(V, DF):
 
 def main():
 	V, DF, terms = populate_matrix()
+
+	# apply TF-IDF normalisation
 	tf_idf(V, DF)
 
 	V = numpy.array(V)
-	M = len(V)
-	N = len(V[0])
-	K = 5
+	m = len(V)         # no. of examples (documents)
+	n = len(V[0])      # no. of terms
+	k = 4              # no. of clusters
+
+	# randomly initialise W and H
+	W = numpy.random.rand(n, k)
+	H = numpy.random.rand(m, k)
+
+	out = numpy.dot(H, W.T)
+	dist = numpy.linalg.norm(out - V)
+	print("Distance between array V and array WH is " + str(dist))
 
 main()
