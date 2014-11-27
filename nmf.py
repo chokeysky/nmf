@@ -11,7 +11,7 @@ import os
 TERMS="bbcnews.terms"
 TDMATRIX="bbcnews.mtx"
 MINERROR=0.02
-MAXITER=5000
+MAXITER=100
 
 def malformed(msg):
 	'''prints message & exits in the case of a malformed
@@ -25,7 +25,7 @@ def populate_matrix():
 	'''reads in a list of terms & a term-document matrix
 	from supplied files, populates an array.
 	returns: A, DF, terms
-	V = term-document matrix in the form of 2D array of floats.
+	A = term-document matrix in the form of 2D array of floats.
 	DF = integer array, each entry DF[i] quantifies how many documents term i appears in
 	terms = the terms as a 1D array of strings.'''
 
@@ -51,12 +51,12 @@ def populate_matrix():
 		rows, columns, numvalues = mfh.readline().split()
 
 		# initialise term frequency (TF) matrix A with above dimensions
-		V = [[0.0 for i in range(int(columns))] for j in range(int(rows))]
+		A = [[0.0 for i in range(int(columns))] for j in range(int(rows))]
 
 		# initialise array to store document frequency (DF) of terms
 		DF = [0 for i in range(len(terms))]
 
-		# populate matrix V
+		# populate matrix A
 		count = 0
 		for line in mfh:
 			# skip empty lines- just in case!
@@ -71,13 +71,13 @@ def populate_matrix():
 			# sanity check:
 			# double entry means I did something wrong,
 			# or matrix was generated incorrectly
-			if V[term -1][doc - 1] == 0:
-				V[term - 1][doc - 1] = freq
+			if A[term -1][doc - 1] == 0:
+				A[term - 1][doc - 1] = freq
 				count += 1
 			else:
 				malformed("Entry #" + str(count + 1) + ", for term '" +
 					terms[term - 1].strip() + "' in document #" + str(doc) +
-					"\nalready has a value of " + V[term -1][doc -1] +
+					"\nalready has a value of " + A[term -1][doc -1] +
 					".\nEntries cannot be assigned twice.")
 
 			DF[term - 1] += 1
@@ -86,44 +86,66 @@ def populate_matrix():
 		if int(numvalues) != count:
 				malformed("Expecting " + numvalues +
 					" entries but found " + str(count))
-	return V, DF, terms	
+	return A, DF, terms	
 
-def tf_idf(V, DF):
-	'''takes matrix V and performs TF-IDF normalisation'''
+def tf_idf(A, DF):
+	'''takes matrix A and performs TF-IDF normalisation'''
 	print("Normalising...")
-	n = len(V)
-	for x in range(len(V)):
-		for y in range(len(V[x])):
-			if (V[x][y] != 0):
-				V[x][y] *= numpy.log10(n / DF[y])
+	n = len(A)
+	for x in range(len(A)):
+		for y in range(len(A[x])):
+			if (A[x][y] != 0):
+				A[x][y] *= numpy.log10(n / DF[y])
+def distance(A, B):   
+    return numpy.sqrt(numpy.sum((A - B)**2))
 
-def nmf(V, W, H):
-    '''factorises nonnegative matrix V into W and H
+def nmf(A, W, H, m, n, k):
+    '''factorises nonnegative matrix A into W and H
     through multiplicative updates, using euclidian distance
     as a cost function'''
-    count = 0
-    print("V = %d, V[0] = %d\nW = %d, W[0] = %d\nH = %d, H[0] = %d"
-          % (len(V), len(V[0]), len(W), len(W[0]), len(H), len(H[0])))
+    print("A = %d, A[0] = %d\nW = %d, W[0] = %d\nH = %d, H[0] = %d"
+          % (len(A), len(A[0]), len(W), len(W[0]), len(H), len(H[0])))
 
-    dist = numpy.linalg.norm(numpy.dot(W, H) - V)
-    print("distance on iteration %d is %.2f" % (count + 1, dist))
-    if (dist <= MINERROR):
-        return W, H
+    initdist = distance(numpy.dot(W, H), A)
+    
+    for count in range(MAXITER):
+        dist = numpy.linalg.norm(numpy.dot(W, H) - A)
+        print("distance on iteration %d is %.2f" % (count + 1, dist))
+        if (dist <= MINERROR):
+            return W, H
+
+        WA = numpy.dot(W.T, A)
+        WWH = numpy.dot(W.T, numpy.dot(W, H))
+
+        for j in range(m):
+            for c in range(k):
+                H[c][j] *= (WA[c][j] / WWH[c][j])
+
+        AH = numpy.dot(A, H.T)
+        WHH = numpy.dot(numpy.dot(W, H), H.T)
+
+        for i in range(n):
+            for c in range(k):
+                W[i][c] *= (AH[i][c] / WHH[i][c])
+    
+    enddist = numpy.linalg.norm(numpy.dot(W, H) - A)
+    print("total distance lost : %.2f" % (initdist - enddist))
+
 
 def main():
-	V, DF, terms = populate_matrix()
+	A, DF, terms = populate_matrix()
 
 	# apply TF-IDF normalisation
-	tf_idf(V, DF)
+	tf_idf(A, DF)
 
-	V = numpy.array(V)
-	n = len(V)         # no. of terms
-	m = len(V[0])      # no. of documents
+	A = numpy.array(A)
+	n = len(A)         # no. of terms
+	m = len(A[0])      # no. of documents
 	k = 2              # no. of clusters
 
 	# randomly initialise W and H
 	W = numpy.random.rand(n, k)
 	H = numpy.random.rand(k, m)
-        nmf(V, W, H)
+        nmf(A, W, H, m, n, k)
 
 main()
