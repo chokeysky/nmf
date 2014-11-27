@@ -13,6 +13,14 @@ TDMATRIX="bbcnews.mtx"
 MINERROR=0.02
 MAXITER=100
 
+# VT100 terminal control codes
+# for clearing the last console line
+CLRLINE='\x1b[1A\x1b[2K'
+
+def usage(arg0):
+	print("\nUsage: " + arg0 + " K\nK = no. of clusters\n")
+	sys.exit(1)
+
 def malformed(msg):
 	'''prints message & exits in the case of a malformed
 	term-document matrix'''
@@ -26,7 +34,7 @@ def populate_matrix():
 	from supplied files, populates an array.
 	returns: A, DF, terms
 	A = term-document matrix in the form of 2D array of floats.
-	DF = integer array, each entry DF[i] quantifies how many documents term i appears in
+	DF = integer array, entry DF[i] quantifies no. of documents term i appears in
 	terms = the terms as a 1D array of strings.'''
 
 	files = ""
@@ -40,7 +48,7 @@ def populate_matrix():
 		sys.exit(-1)
 	
 	with open(TERMS, "r") as tfh:
-		print("\nReading file '" + TERMS + "'...")
+		print("Reading file '" + TERMS + "'...")
 		terms =	tfh.readlines()
 
 	with open(TDMATRIX, "r") as mfh:
@@ -90,49 +98,63 @@ def populate_matrix():
 
 def tf_idf(A, DF):
 	'''takes matrix A and performs TF-IDF normalisation'''
-	print("Normalising...")
 	n = len(A)
+        print()
 	for x in range(len(A)):
 		for y in range(len(A[x])):
 			if (A[x][y] != 0):
 				A[x][y] *= numpy.log10(n / DF[y])
-def distance(A, B):   
-    return numpy.sqrt(numpy.sum((A - B)**2))
+        	print(CLRLINE + "Normalising input matrix : %.2f%%"
+			% (((x + 1) / float(n) * 100)))
+            
+def distance(A, B):
+	'''returns the euclidian distance between A and B'''
+	return numpy.sqrt(numpy.sum((A - B)**2))
 
 def nmf(A, W, H, m, n, k):
-    '''factorises nonnegative matrix A into W and H
-    through multiplicative updates, using euclidian distance
-    as a cost function'''
-    print("A = %d, A[0] = %d\nW = %d, W[0] = %d\nH = %d, H[0] = %d"
-          % (len(A), len(A[0]), len(W), len(W[0]), len(H), len(H[0])))
-
-    initdist = distance(numpy.dot(W, H), A)
+	'''factorises nonnegative matrix A into W and H
+	through multiplicative updates, using euclidian distance
+	as a cost function'''
+	initdist = distance(numpy.dot(W, H), A)
     
-    for count in range(MAXITER):
-        dist = numpy.linalg.norm(numpy.dot(W, H) - A)
-        print("distance on iteration %d is %.2f" % (count + 1, dist))
-        if (dist <= MINERROR):
-            return W, H
+        print()
+	for count in range(MAXITER):
+		dist = numpy.linalg.norm(numpy.dot(W, H) - A)
 
-        WA = numpy.dot(W.T, A)
-        WWH = numpy.dot(W.T, numpy.dot(W, H))
+		if (dist <= MINERROR):
+			return W, H
 
-        for j in range(m):
-            for c in range(k):
-                H[c][j] *= (WA[c][j] / WWH[c][j])
+		print(CLRLINE + "Multiplicative update : %.2f%%"
+			% (((count + 1) / float(MAXITER)) * 100))
 
-        AH = numpy.dot(A, H.T)
-        WHH = numpy.dot(numpy.dot(W, H), H.T)
+		WA = numpy.dot(W.T, A)
+		WWH = numpy.dot(W.T, numpy.dot(W, H))
 
-        for i in range(n):
-            for c in range(k):
-                W[i][c] *= (AH[i][c] / WHH[i][c])
+		for j in range(m):
+			for c in range(k):
+				H[c][j] *= (WA[c][j] / WWH[c][j])
+
+		AH = numpy.dot(A, H.T)
+		WHH = numpy.dot(numpy.dot(W, H), H.T)
+
+		for i in range(n):
+			for c in range(k):
+				W[i][c] *= (AH[i][c] / WHH[i][c])
     
-    enddist = numpy.linalg.norm(numpy.dot(W, H) - A)
-    print("total distance lost : %.2f" % (initdist - enddist))
+	enddist = distance(numpy.dot(W, H), A)
+	print("total distance decrease : %.2f (%.2f%%)"
+		% ((initdist - enddist), ((initdist - enddist) / initdist) * 100))
 
 
 def main():
+	if (len(sys.argv) != 2):
+		usage(sys.argv[0])
+
+	try:
+		k = int(sys.argv[1]) # no. of clusters
+	except ValueError:
+		usage(sys.argv[0])
+
 	A, DF, terms = populate_matrix()
 
 	# apply TF-IDF normalisation
@@ -141,7 +163,6 @@ def main():
 	A = numpy.array(A)
 	n = len(A)         # no. of terms
 	m = len(A[0])      # no. of documents
-	k = 2              # no. of clusters
 
 	# randomly initialise W and H
 	W = numpy.random.rand(n, k)
