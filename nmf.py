@@ -10,6 +10,8 @@ import os
 
 TERMS="bbcnews.terms"
 TDMATRIX="bbcnews.mtx"
+MINERROR=0.02
+MAXITER=5000
 
 def malformed(msg):
 	'''prints message & exits in the case of a malformed
@@ -49,7 +51,7 @@ def populate_matrix():
 		rows, columns, numvalues = mfh.readline().split()
 
 		# initialise term frequency (TF) matrix A with above dimensions
-		V = [[0.0 for i in range(int(rows))] for j in range(int(columns))]
+		V = [[0.0 for i in range(int(columns))] for j in range(int(rows))]
 
 		# initialise array to store document frequency (DF) of terms
 		DF = [0 for i in range(len(terms))]
@@ -69,13 +71,13 @@ def populate_matrix():
 			# sanity check:
 			# double entry means I did something wrong,
 			# or matrix was generated incorrectly
-			if V[doc -1][term - 1] == 0:
-				V[doc - 1][term - 1] = freq
+			if V[term -1][doc - 1] == 0:
+				V[term - 1][doc - 1] = freq
 				count += 1
 			else:
 				malformed("Entry #" + str(count + 1) + ", for term '" +
 					terms[term - 1].strip() + "' in document #" + str(doc) +
-					"\nalready has a value of " + V[doc -1][term -1] +
+					"\nalready has a value of " + V[term -1][doc -1] +
 					".\nEntries cannot be assigned twice.")
 
 			DF[term - 1] += 1
@@ -95,6 +97,19 @@ def tf_idf(V, DF):
 			if (V[x][y] != 0):
 				V[x][y] *= numpy.log10(n / DF[y])
 
+def nmf(V, W, H):
+    '''factorises nonnegative matrix V into W and H
+    through multiplicative updates, using euclidian distance
+    as a cost function'''
+    count = 0
+    print("V = %d, V[0] = %d\nW = %d, W[0] = %d\nH = %d, H[0] = %d"
+          % (len(V), len(V[0]), len(W), len(W[0]), len(H), len(H[0])))
+
+    dist = numpy.linalg.norm(numpy.dot(W, H) - V)
+    print("distance on iteration %d is %.2f" % (count + 1, dist))
+    if (dist <= MINERROR):
+        return W, H
+
 def main():
 	V, DF, terms = populate_matrix()
 
@@ -102,16 +117,13 @@ def main():
 	tf_idf(V, DF)
 
 	V = numpy.array(V)
-	m = len(V)         # no. of examples (documents)
-	n = len(V[0])      # no. of terms
-	k = 4              # no. of clusters
+	n = len(V)         # no. of terms
+	m = len(V[0])      # no. of documents
+	k = 2              # no. of clusters
 
 	# randomly initialise W and H
 	W = numpy.random.rand(n, k)
-	H = numpy.random.rand(m, k)
-
-	out = numpy.dot(H, W.T)
-	dist = numpy.linalg.norm(out - V)
-	print("Distance between array V and array WH is " + str(dist))
+	H = numpy.random.rand(k, m)
+        nmf(V, W, H)
 
 main()
