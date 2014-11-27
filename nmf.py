@@ -11,11 +11,13 @@ import os
 TERMS="bbcnews.terms"
 TDMATRIX="bbcnews.mtx"
 MINERROR=0.02
-MAXITER=100
+MAXITER=100 # max number of multiplicative update iterations
+NUMTERMS=15 # no. of terms to show for each cluster
 
 # VT100 terminal control codes
 # for clearing the last console line
-CLRLINE='\x1b[1A\x1b[2K'
+CLRLINE='\x1b[2K'
+UP1='\x1b[1A'
 
 def usage(arg0):
 	print("\nUsage: " + arg0 + " K\nK = no. of clusters\n")
@@ -104,7 +106,7 @@ def tf_idf(A, DF):
 		for y in range(len(A[x])):
 			if (A[x][y] != 0):
 				A[x][y] *= numpy.log10(n / DF[y])
-        	print(CLRLINE + "Normalising input matrix : %.2f%%"
+        	print(UP1 + CLRLINE + "Normalising input matrix : %.2f%%"
 			% (((x + 1) / float(n) * 100)))
             
 def distance(A, B):
@@ -117,15 +119,17 @@ def nmf(A, W, H, m, n, k):
 	as a cost function'''
 	initdist = distance(numpy.dot(W, H), A)
     
-        print()
+        print('\n')
 	for count in range(MAXITER):
-		dist = numpy.linalg.norm(numpy.dot(W, H) - A)
+		dist = distance(numpy.dot(W, H), A)
 
 		if (dist <= MINERROR):
 			return W, H
 
-		print(CLRLINE + "Multiplicative update : %.2f%%"
-			% (((count + 1) / float(MAXITER)) * 100))
+		print(UP1 + CLRLINE + UP1 + CLRLINE +
+			"Multiplicative update : %.2f%%\n"
+			"Distance from convergence : %.2f"
+			% (((count + 1) / float(MAXITER)) * 100, dist))
 
 		WA = numpy.dot(W.T, A)
 		WWH = numpy.dot(W.T, numpy.dot(W, H))
@@ -145,6 +149,25 @@ def nmf(A, W, H, m, n, k):
 	print("total distance decrease : %.2f (%.2f%%)"
 		% ((initdist - enddist), ((initdist - enddist) / initdist) * 100))
 
+def show_top_terms(W, H, m, n, k, terms):
+	'''displays the top NUMTERMS terms for each cluster, k'''
+	for c in range(k):
+		# populate a dict with term:membership
+		# as a key:value pair for each term in this cluster
+		toptermsd = {}
+		for t in range(len(W)):
+			toptermsd[terms[t]] = W[t][c]
+
+		# sort the terms into an ordered list of tuples
+		topterms = sorted(toptermsd.items(), key=lambda x: x[1])
+		toptermsd.clear()
+
+		# print the last NUMTERMS terms
+		print("\nTopic %d:" % (c + 1))
+		for j in range(1, NUMTERMS + 1):
+			print("\t" + str(topterms[-j][0]).strip()
+				+ " (%.2f)" % (topterms[-j][1]))
+			
 
 def main():
 	if (len(sys.argv) != 2):
@@ -168,5 +191,6 @@ def main():
 	W = numpy.random.rand(n, k)
 	H = numpy.random.rand(k, m)
         nmf(A, W, H, m, n, k)
+	show_top_terms(W, H, m, n, k, terms)
 
 main()
