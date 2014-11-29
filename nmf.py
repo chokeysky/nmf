@@ -39,15 +39,15 @@ def usage(arg0):
 	print("\nUsage: " + arg0 + " K\nK = no. of clusters\n")
 	sys.exit(1)
 
-def malformed(msg):
+def malformed(msg, matrixfile):
 	'''prints message & exits in the case of a malformed
 	term-document matrix'''
 
-	print("Malformed term-document matrix in file '" + TDMATRIX + "' :\n"
+	print("Malformed term-document matrix in file '" + matrixfile + "' :\n"
 		+ msg)
 	sys.exit(-1)
 
-def populate_matrix():
+def populate_matrix(matrixfile, termsfile):
 	'''reads in a list of terms & a term-document matrix
 	from supplied files, populates an array.
 	returns: A, DF, terms
@@ -56,21 +56,21 @@ def populate_matrix():
 	terms = the terms as a 1D array of strings.'''
 
 	files = ""
-	if not os.path.exists(TERMS):
-		files += (TERMS + "\n")
-	if not os.path.exists(TDMATRIX):
-		files += (TDMATRIX + "\n")
+	if not os.path.exists(termsfile):
+		files += (termsfile + "\n")
+	if not os.path.exists(matrixfile):
+		files += (matrixfile + "\n")
 
 	if files != "":
 		print("\nno such file(s) :\n" + files)
 		sys.exit(-1)
 	
-	with open(TERMS, "r") as tfh:
-		print("Reading file '" + TERMS + "'...")
+	with open(termsfile, "r") as tfh:
+		print("Reading file '" + termsfile + "'...")
 		terms =	tfh.readlines()
 
-	with open(TDMATRIX, "r") as mfh:
-		print("Reading file '" + TDMATRIX + "' ...")
+	with open(matrixfile, "r") as mfh:
+		print("Reading file '" + matrixfile + "' ...")
 		header = mfh.readline() # skip header
 
 		# read matrix dimensions
@@ -104,20 +104,21 @@ def populate_matrix():
 				malformed("Entry #" + str(count + 1) + ", for term '" +
 					terms[term - 1].strip() + "' in document #" + str(doc) +
 					"\nalready has a value of " + A[term -1][doc -1] +
-					".\nEntries cannot be assigned twice.")
+					".\nEntries cannot be assigned twice.", matrixfile)
 
 			DF[term - 1] += 1
 
 		# final sanity check
 		if int(numvalues) != count:
 				malformed("Expecting " + numvalues +
-					" entries but found " + str(count))
+					" entries but found " + str(count), matrixfile)
 	return A, DF, terms	
 
 def tf_idf(A, DF):
 	'''takes matrix A and performs TF-IDF normalisation
 	an excellent practical example can be seen at :
 	http://en.wikipedia.org/wiki/Tf-idf'''
+
 	n = len(A)
         print()
 	for x in range(len(A)):
@@ -135,9 +136,10 @@ def nmf(A, W, H, m, n, k):
 	'''factorises nonnegative matrix A into W and H
 	through multiplicative updates, using euclidian distance
 	as a cost function'''
+
 	initdist = distance(numpy.dot(W, H), A)
-    	print("Initial distance : %.2f" % (initdist))
-        print('\n')
+    	print("Initial distance : %.2f\n\n" % (initdist))
+
 	for count in range(MAXITER):
 		dist = distance(numpy.dot(W, H), A)
 
@@ -203,7 +205,7 @@ def main():
 	else:
 		k = 5
 
-	A, DF, terms = populate_matrix()
+	A, DF, terms = populate_matrix(TDMATRIX, TERMS)
 
 	# apply TF-IDF normalisation
 	tf_idf(A, DF)
