@@ -144,7 +144,7 @@ def nmf(A, W, H, m, n, k):
 		dist = distance(numpy.dot(W, H), A)
 
 		if (dist <= MINERROR):
-			return W, H
+			break
 
 		print(UP1 + CLRLINE + UP1 + CLRLINE +
 			"Multiplicative update : %.2f%%\n"
