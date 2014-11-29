@@ -25,7 +25,7 @@ TDMATRIX="bbcnews.mtx"
 # however 100 iterations is enough to see some meaningful
 # results and completes in a reasonable time. Increase MAXITER
 # if you have some free time :)
-MAXITER=100
+MAXITER=1
 
 MINERROR=0.02
 NUMTERMS=10 # no. of terms to show for each cluster
@@ -138,7 +138,7 @@ def nmf(A, W, H, m, n, k):
 	as a cost function'''
 
 	initdist = distance(numpy.dot(W, H), A)
-    	print("Initial distance : %.2f\n\n" % (initdist))
+    	print("Initial distance from convergence : %.2f\n\n" % (initdist))
 
 	for count in range(MAXITER):
 		dist = distance(numpy.dot(W, H), A)
@@ -166,12 +166,13 @@ def nmf(A, W, H, m, n, k):
 		for i in range(n):
 			for c in range(k):
 				W[i][c] *= (AH[i][c] / WHH[i][c])
-    
+   
 	enddist = distance(numpy.dot(W, H), A)
-	print("total distance decrease : %.2f (%.2f%%)"
+	print("Final distance from convergence : %.2f" % (enddist)) 
+	print("Total distance decrease : %.2f (%.2f%%)"
 		% ((initdist - enddist), ((initdist - enddist) / initdist) * 100))
 
-def show_top_terms(W, H, m, n, k, terms):
+def show_top_terms(W, m, n, k, terms):
 	'''displays the top NUMTERMS terms for each cluster, k'''
 	for c in range(k):
 		# populate a dict with term:membership
@@ -218,6 +219,6 @@ def main():
 	W = numpy.random.rand(n, k)
 	H = numpy.random.rand(k, m)
         nmf(A, W, H, m, n, k)
-	show_top_terms(W, H, m, n, k, terms)
+	show_top_terms(W, m, n, k, terms)
 
 main()
