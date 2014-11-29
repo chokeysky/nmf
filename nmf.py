@@ -1,18 +1,34 @@
 #!/usr/bin/python2.7
 #
 # COMP41450 Assigment 2
-# NMF implementation with sparse term-document matrix
+# Topic modelling of a term-document matrix
+# through nonnegative matrix factorisation
 # Erik Nyquist 13206065
+#
+# requires following input files to be defined:
+# - term-document matrix stored in Matrix Market format (*.mtx)
+# - a newline-seperated list of the terms (*.terms)
+#
+# takes 1 optional command-line argument, K (integer),
+# which represents the number of clusters (topics).
+# default value of K is 5.
 
 import numpy
 import sys
 import os
 
+# input files
 TERMS="bbcnews.terms"
 TDMATRIX="bbcnews.mtx"
+
+# this implementation of NMF takes a long time to converge,
+# however 100 iterations is enough to see some meaningful
+# results and completes in a reasonable time. Increase MAXITER
+# if you have some free time :)
+MAXITER=100
+
 MINERROR=0.02
-MAXITER=100 # max number of multiplicative update iterations
-NUMTERMS=15 # no. of terms to show for each cluster
+NUMTERMS=10 # no. of terms to show for each cluster
 
 # VT100 terminal control codes
 # for clearing the last console line
@@ -99,7 +115,9 @@ def populate_matrix():
 	return A, DF, terms	
 
 def tf_idf(A, DF):
-	'''takes matrix A and performs TF-IDF normalisation'''
+	'''takes matrix A and performs TF-IDF normalisation
+	an excellent practical example can be seen at :
+	http://en.wikipedia.org/wiki/Tf-idf'''
 	n = len(A)
         print()
 	for x in range(len(A)):
@@ -118,7 +136,7 @@ def nmf(A, W, H, m, n, k):
 	through multiplicative updates, using euclidian distance
 	as a cost function'''
 	initdist = distance(numpy.dot(W, H), A)
-    
+    	print("Initial distance : %.2f" % (initdist))
         print('\n')
 	for count in range(MAXITER):
 		dist = distance(numpy.dot(W, H), A)
@@ -131,6 +149,7 @@ def nmf(A, W, H, m, n, k):
 			"Distance from convergence : %.2f"
 			% (((count + 1) / float(MAXITER)) * 100, dist))
 
+		# update H from WA / WWH
 		WA = numpy.dot(W.T, A)
 		WWH = numpy.dot(W.T, numpy.dot(W, H))
 
@@ -138,6 +157,7 @@ def nmf(A, W, H, m, n, k):
 			for c in range(k):
 				H[c][j] *= (WA[c][j] / WWH[c][j])
 
+		# update W from AH / WHH
 		AH = numpy.dot(A, H.T)
 		WHH = numpy.dot(numpy.dot(W, H), H.T)
 
@@ -158,25 +178,30 @@ def show_top_terms(W, H, m, n, k, terms):
 		for t in range(len(W)):
 			toptermsd[terms[t]] = W[t][c]
 
-		# sort the terms into an ordered list of tuples
+		# sort the terms into a list of tuples, ordered by value
+		# (cluster membership)
 		topterms = sorted(toptermsd.items(), key=lambda x: x[1])
 		toptermsd.clear()
 
 		# print the last NUMTERMS terms
-		print("\nTopic %d:" % (c + 1))
+		print("\nCluster %d:" % (c + 1))
 		for j in range(1, NUMTERMS + 1):
 			print("\t" + str(topterms[-j][0]).strip()
 				+ " (%.2f)" % (topterms[-j][1]))
 			
 
 def main():
-	if (len(sys.argv) != 2):
+	if (len(sys.argv) > 2):
 		usage(sys.argv[0])
 
-	try:
-		k = int(sys.argv[1]) # no. of clusters
-	except ValueError:
-		usage(sys.argv[0])
+	elif (len(sys.argv) == 2):
+		try:
+			k = int(sys.argv[1])
+		except ValueError:
+			usage(sys.argv[0])
+
+	else:
+		k = 5
 
 	A, DF, terms = populate_matrix()
 
