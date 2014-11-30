@@ -25,7 +25,7 @@ TDMATRIX="bbcnews.mtx"
 # however 100 iterations is enough to see some meaningful
 # results and completes in a reasonable time. Increase MAXITER
 # if you have some free time :)
-MAXITER=1
+MAXITER=100
 
 MINERROR=0.02
 NUMTERMS=10 # no. of terms to show for each cluster
